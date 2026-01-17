@@ -1,6 +1,10 @@
 package handlers
 
 import (
+	"bytes"
+	"io"
+	"net/http"
+
 	services2 "github.com/drama-generator/backend/application/services"
 	"github.com/drama-generator/backend/pkg/config"
 	"github.com/drama-generator/backend/pkg/logger"
@@ -37,10 +41,18 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// 检查文件类型
+	// 检查文件类型（优先使用文件头检测）
 	contentType := header.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
+	sniffBuf := make([]byte, 512)
+	n, _ := file.Read(sniffBuf)
+	detectedType := http.DetectContentType(sniffBuf[:n])
+	if detectedType != "application/octet-stream" {
+		contentType = detectedType
+	}
+	if seeker, ok := file.(io.Seeker); ok {
+		_, _ = seeker.Seek(0, 0)
+	} else {
+		file = io.MultiReader(bytes.NewReader(sniffBuf[:n]), file)
 	}
 
 	// 验证是图片类型
@@ -90,10 +102,18 @@ func (h *UploadHandler) UploadCharacterImage(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// 检查文件类型
+	// 检查文件类型（优先使用文件头检测）
 	contentType := header.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
+	sniffBuf := make([]byte, 512)
+	n, _ := file.Read(sniffBuf)
+	detectedType := http.DetectContentType(sniffBuf[:n])
+	if detectedType != "application/octet-stream" {
+		contentType = detectedType
+	}
+	if seeker, ok := file.(io.Seeker); ok {
+		_, _ = seeker.Seek(0, 0)
+	} else {
+		file = io.MultiReader(bytes.NewReader(sniffBuf[:n]), file)
 	}
 
 	// 验证是图片类型

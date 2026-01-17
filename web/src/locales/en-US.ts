@@ -97,6 +97,8 @@ export default {
       apiKey: 'API Key',
       apiKeyPlaceholder: 'sk-...',
       apiKeyTip: 'Your API key',
+      testMaxTokens: 'Test Max Tokens',
+      testMaxTokensTip: 'Used for connection testing, minimum 16',
       isActive: 'Active Status'
     },
     actions: {

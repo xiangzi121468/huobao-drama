@@ -13,7 +13,7 @@ type AIServiceConfig struct {
 	Provider      string     `gorm:"type:varchar(50)" json:"provider"`              // openai, gemini, volcengine, etc.
 	Name          string     `gorm:"type:varchar(100);not null" json:"name"`
 	BaseURL       string     `gorm:"type:varchar(255);not null" json:"base_url"`
-	APIKey        string     `gorm:"type:varchar(255);not null" json:"api_key"`
+	APIKey        string     `gorm:"type:varchar(255);not null" json:"-"`
 	Model         ModelField `gorm:"type:text" json:"model"`
 	Endpoint      string     `gorm:"type:varchar(255)" json:"endpoint"`
 	QueryEndpoint string     `gorm:"type:varchar(255)" json:"query_endpoint"`
@@ -21,6 +21,7 @@ type AIServiceConfig struct {
 	IsDefault     bool       `gorm:"default:false" json:"is_default"`
 	IsActive      bool       `gorm:"default:true" json:"is_active"`
 	Settings      string     `gorm:"type:text" json:"settings"`
+	TestMaxTokens int        `gorm:"default:16" json:"test_max_tokens"`
 	CreatedAt     time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
 	UpdatedAt     time.Time  `gorm:"not null;autoUpdateTime" json:"updated_at"`
 }

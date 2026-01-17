@@ -456,6 +456,7 @@ CREATE TABLE IF NOT EXISTS ai_service_configs (
     is_default INTEGER NOT NULL DEFAULT 0,
     is_active INTEGER NOT NULL DEFAULT 1,
     settings TEXT, -- JSON存储
+    test_max_tokens INTEGER NOT NULL DEFAULT 16,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at DATETIME

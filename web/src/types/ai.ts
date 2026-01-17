@@ -11,6 +11,7 @@ export interface AIServiceConfig {
   priority: number  // 优先级，数值越大优先级越高
   is_active: boolean
   settings?: string
+  test_max_tokens?: number
   created_at: string
   updated_at: string
 }
@@ -28,6 +29,7 @@ export interface CreateAIConfigRequest {
   query_endpoint?: string  // 异步查询端点（用于视频等异步任务）
   priority?: number  // 优先级，数值越大优先级越高
   settings?: string
+  test_max_tokens?: number
 }
 
 export interface UpdateAIConfigRequest {
@@ -41,6 +43,7 @@ export interface UpdateAIConfigRequest {
   priority?: number  // 优先级，数值越大优先级越高
   is_active?: boolean
   settings?: string
+  test_max_tokens?: number
 }
 
 export interface TestConnectionRequest {
@@ -50,6 +53,7 @@ export interface TestConnectionRequest {
   provider?: string  // 厂商标识
   endpoint?: string
   query_endpoint?: string  // 异步查询端点（用于视频等异步任务）
+  test_max_tokens?: number
 }
 
 export interface AIServiceProvider {

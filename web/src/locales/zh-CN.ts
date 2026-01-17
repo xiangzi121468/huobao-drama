@@ -112,6 +112,8 @@ export default {
       apiKey: 'API Key',
       apiKeyPlaceholder: 'sk-...',
       apiKeyTip: '您的 API 密钥',
+      testMaxTokens: '测试 Max Tokens',
+      testMaxTokensTip: '用于“测试连接”的最大输出 token，最低 16',
       isActive: '启用状态'
     },
     actions: {

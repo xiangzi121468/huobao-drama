@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -89,13 +92,17 @@ func (c *OpenAIClient) ChatCompletion(messages []ChatMessage, options ...func(*C
 }
 
 func (c *OpenAIClient) sendChatRequest(req *ChatCompletionRequest) (*ChatCompletionResponse, error) {
+	// OpenAI-compatible APIs (e.g. OpenRouter/Azure) may require a minimum max_tokens.
+	if req.MaxTokens > 0 && req.MaxTokens < 16 {
+		req.MaxTokens = 16
+	}
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		fmt.Printf("OpenAI: Failed to marshal request: %v\n", err)
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	url := c.BaseURL + c.Endpoint
+	url := buildOpenAIURL(c.BaseURL, c.Endpoint)
 
 	// 打印请求信息
 	fmt.Printf("OpenAI: Sending request to: %s\n", url)
@@ -217,11 +224,33 @@ func (c *OpenAIClient) TestConnection() error {
 		},
 	}
 
-	_, err := c.ChatCompletion(messages, WithMaxTokens(10))
+	maxTokens := 16
+	if v := os.Getenv("OPENAI_TEST_MAX_TOKENS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 16 {
+			maxTokens = n
+		}
+	}
+	_, err := c.ChatCompletion(messages, WithMaxTokens(maxTokens))
 	if err != nil {
 		fmt.Printf("OpenAI: TestConnection failed: %v\n", err)
 	} else {
 		fmt.Printf("OpenAI: TestConnection succeeded\n")
 	}
 	return err
+}
+
+func buildOpenAIURL(baseURL string, endpoint string) string {
+	base := strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	ep := strings.TrimSpace(endpoint)
+	if ep == "" {
+		return base
+	}
+	if !strings.HasPrefix(ep, "/") {
+		ep = "/" + ep
+	}
+	// Avoid duplicating endpoint if baseURL already includes it.
+	if strings.HasSuffix(base, ep) {
+		return base
+	}
+	return base + ep
 }

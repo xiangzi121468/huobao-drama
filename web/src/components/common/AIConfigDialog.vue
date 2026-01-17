@@ -195,6 +195,17 @@
           <div class="form-tip">{{ $t('aiConfig.form.apiKeyTip') }}</div>
         </el-form-item>
 
+        <el-form-item v-if="form.service_type === 'text'" :label="$t('aiConfig.form.testMaxTokens')" prop="test_max_tokens">
+          <el-input-number 
+            v-model="form.test_max_tokens" 
+            :min="16" 
+            :max="8192"
+            :step="1"
+            style="width: 100%"
+          />
+          <div class="form-tip">{{ $t('aiConfig.form.testMaxTokensTip') }}</div>
+        </el-form-item>
+
         <el-form-item v-if="isEdit" :label="$t('aiConfig.form.isActive')">
           <el-switch v-model="form.is_active" />
         </el-form-item>
@@ -264,7 +275,8 @@ const form = reactive<CreateAIConfigRequest & { is_active?: boolean, provider?: 
   api_key: '',
   model: [],
   priority: 0,
-  is_active: true
+  is_active: true,
+  test_max_tokens: 16
 })
 
 // Provider configs
@@ -409,6 +421,20 @@ const rules: FormRules = {
         callback(new Error('请至少选择一个模型'))
       }
     }
+  }],
+  test_max_tokens: [{
+    trigger: 'blur',
+    validator: (rule: any, value: any, callback: any) => {
+      if (value === undefined || value === null || value === '') {
+        callback()
+        return
+      }
+      if (Number.isFinite(value) && Number(value) >= 16) {
+        callback()
+        return
+      }
+      callback(new Error('最小值为 16'))
+    }
   }]
 }
 
@@ -467,7 +493,8 @@ const handleEdit = (config: AIServiceConfig) => {
     api_key: config.api_key,
     model: Array.isArray(config.model) ? config.model : [config.model],
     priority: config.priority || 0,
-    is_active: config.is_active
+    is_active: config.is_active,
+    test_max_tokens: config.test_max_tokens ?? 16
   })
   editDialogVisible.value = true
 }
@@ -513,7 +540,8 @@ const testConnection = async () => {
       base_url: form.base_url,
       api_key: form.api_key,
       model: form.model,
-      provider: form.provider
+      provider: form.provider,
+      test_max_tokens: form.test_max_tokens
     })
     ElMessage.success('连接测试成功！')
   } catch (error: any) {
@@ -530,7 +558,8 @@ const handleTest = async (config: AIServiceConfig) => {
       base_url: config.base_url,
       api_key: config.api_key,
       model: config.model,
-      provider: config.provider
+      provider: config.provider,
+      test_max_tokens: config.test_max_tokens
     })
     ElMessage.success('连接测试成功！')
   } catch (error: any) {
@@ -556,7 +585,8 @@ const handleSubmit = async () => {
           api_key: form.api_key,
           model: form.model,
           priority: form.priority,
-          is_active: form.is_active
+          is_active: form.is_active,
+          test_max_tokens: form.test_max_tokens
         }
         await aiAPI.update(editingId.value, updateData)
         ElMessage.success('更新成功')
@@ -604,7 +634,8 @@ const resetForm = () => {
     api_key: '',
     model: [],
     priority: 0,
-    is_active: true
+    is_active: true,
+    test_max_tokens: 16
   })
   formRef.value?.resetFields()
 }
@@ -634,7 +665,8 @@ const handleQuickSetup = async () => {
       base_url: baseUrl,
       api_key: apiKey,
       model: [textProvider.models[0]],
-      priority: 0
+      priority: 0,
+      test_max_tokens: 16
     })
 
     // 创建图片配置
@@ -646,7 +678,8 @@ const handleQuickSetup = async () => {
       base_url: baseUrl,
       api_key: apiKey,
       model: [imageProvider.models[0]],
-      priority: 0
+      priority: 0,
+      test_max_tokens: 16
     })
 
     // 创建视频配置
@@ -658,7 +691,8 @@ const handleQuickSetup = async () => {
       base_url: baseUrl,
       api_key: apiKey,
       model: [videoProvider.models[0]],
-      priority: 0
+      priority: 0,
+      test_max_tokens: 16
     })
 
     ElMessage.success('一键配置成功！已创建文本、图片、视频三个服务配置')

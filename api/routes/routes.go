@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"os"
+
 	handlers2 "github.com/drama-generator/backend/api/handlers"
 	middlewares2 "github.com/drama-generator/backend/api/middlewares"
 	services2 "github.com/drama-generator/backend/application/services"
@@ -30,7 +32,12 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, log *logger.Logger, localStora
 	})
 
 	aiService := services2.NewAIService(db, log)
-	localStoragePtr := localStorage.(*storage2.LocalStorage)
+	var localStoragePtr *storage2.LocalStorage
+	if localStorage != nil {
+		if ls, ok := localStorage.(*storage2.LocalStorage); ok {
+			localStoragePtr = ls
+		}
+	}
 	transferService := services2.NewResourceTransferService(db, log)
 	dramaHandler := handlers2.NewDramaHandler(db, cfg, log, nil)
 	aiConfigHandler := handlers2.NewAIConfigHandler(db, cfg, log)
@@ -54,6 +61,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, log *logger.Logger, localStora
 
 	api := r.Group("/api/v1")
 	{
+		api.Use(middlewares2.AuthMiddleware(os.Getenv("API_AUTH_TOKEN")))
 		api.Use(middlewares2.RateLimitMiddleware())
 
 		dramas := api.Group("/dramas")

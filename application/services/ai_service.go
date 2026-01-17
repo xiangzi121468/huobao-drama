@@ -34,6 +34,7 @@ type CreateAIConfigRequest struct {
 	Priority      int               `json:"priority"`
 	IsDefault     bool              `json:"is_default"`
 	Settings      string            `json:"settings"`
+	TestMaxTokens *int              `json:"test_max_tokens"`
 }
 
 type UpdateAIConfigRequest struct {
@@ -48,6 +49,7 @@ type UpdateAIConfigRequest struct {
 	IsDefault     bool               `json:"is_default"`
 	IsActive      bool               `json:"is_active"`
 	Settings      string             `json:"settings"`
+	TestMaxTokens *int               `json:"test_max_tokens"`
 }
 
 type TestConnectionRequest struct {
@@ -56,6 +58,8 @@ type TestConnectionRequest struct {
 	Model    models.ModelField `json:"model" binding:"required"`
 	Provider string            `json:"provider"`
 	Endpoint string            `json:"endpoint"`
+	// Optional: use a different max tokens for connection test (>=16).
+	TestMaxTokens *int `json:"test_max_tokens"`
 }
 
 func (s *AIService) CreateConfig(req *CreateAIConfigRequest) (*models.AIServiceConfig, error) {
@@ -110,6 +114,14 @@ func (s *AIService) CreateConfig(req *CreateAIConfigRequest) (*models.AIServiceC
 		}
 	}
 
+	testMaxTokens := 16
+	if req.TestMaxTokens != nil {
+		if *req.TestMaxTokens < 16 {
+			return nil, fmt.Errorf("test_max_tokens must be >= 16")
+		}
+		testMaxTokens = *req.TestMaxTokens
+	}
+
 	config := &models.AIServiceConfig{
 		ServiceType:   req.ServiceType,
 		Name:          req.Name,
@@ -123,6 +135,7 @@ func (s *AIService) CreateConfig(req *CreateAIConfigRequest) (*models.AIServiceC
 		IsDefault:     req.IsDefault,
 		IsActive:      true,
 		Settings:      req.Settings,
+		TestMaxTokens: testMaxTokens,
 	}
 
 	if err := s.db.Create(config).Error; err != nil {
@@ -194,6 +207,12 @@ func (s *AIService) UpdateConfig(configID uint, req *UpdateAIConfigRequest) (*mo
 	}
 	if req.Priority != nil {
 		updates["priority"] = *req.Priority
+	}
+	if req.TestMaxTokens != nil {
+		if *req.TestMaxTokens < 16 {
+			return nil, fmt.Errorf("test_max_tokens must be >= 16")
+		}
+		updates["test_max_tokens"] = *req.TestMaxTokens
 	}
 
 	// 如果提供了 provider，根据 provider 和 service_type 自动设置 endpoint
@@ -281,6 +300,14 @@ func (s *AIService) TestConnection(req *TestConnectionRequest) error {
 	var client ai.AIClient
 	var endpoint string
 
+	maxTokens := 16
+	if req.TestMaxTokens != nil {
+		if *req.TestMaxTokens < 16 {
+			return fmt.Errorf("test_max_tokens must be >= 16")
+		}
+		maxTokens = *req.TestMaxTokens
+	}
+
 	switch req.Provider {
 	case "gemini", "google":
 		// Gemini
@@ -305,8 +332,16 @@ func (s *AIService) TestConnection(req *TestConnectionRequest) error {
 		client = ai.NewOpenAIClient(req.BaseURL, req.APIKey, model, endpoint)
 	}
 
-	s.log.Infow("Calling TestConnection on client", "endpoint", endpoint)
-	err := client.TestConnection()
+	s.log.Infow("Calling TestConnection on client", "endpoint", endpoint, "max_tokens", maxTokens)
+	var err error
+	if openaiClient, ok := client.(*ai.OpenAIClient); ok {
+		messages := []ai.ChatMessage{
+			{Role: "user", Content: "Hello"},
+		}
+		_, err = openaiClient.ChatCompletion(messages, ai.WithMaxTokens(maxTokens))
+	} else {
+		err = client.TestConnection()
+	}
 	if err != nil {
 		s.log.Errorw("TestConnection failed", "error", err)
 	} else {

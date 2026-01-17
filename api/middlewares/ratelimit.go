@@ -13,12 +13,14 @@ type rateLimiter struct {
 	requests map[string][]time.Time
 	limit    int
 	window   time.Duration
+	lastGC   time.Time
 }
 
 var limiter = &rateLimiter{
 	requests: make(map[string][]time.Time),
 	limit:    100,
 	window:   time.Minute,
+	lastGC:   time.Now(),
 }
 
 func RateLimitMiddleware() gin.HandlerFunc {
@@ -29,6 +31,23 @@ func RateLimitMiddleware() gin.HandlerFunc {
 		defer limiter.mu.Unlock()
 
 		now := time.Now()
+		// 定期清理过期IP，避免内存无限增长
+		if now.Sub(limiter.lastGC) >= limiter.window {
+			for key, times := range limiter.requests {
+				var recent []time.Time
+				for _, t := range times {
+					if now.Sub(t) < limiter.window {
+						recent = append(recent, t)
+					}
+				}
+				if len(recent) == 0 {
+					delete(limiter.requests, key)
+				} else {
+					limiter.requests[key] = recent
+				}
+			}
+			limiter.lastGC = now
+		}
 		requests := limiter.requests[ip]
 
 		var validRequests []time.Time
