@@ -18,6 +18,14 @@ type UploadHandler struct {
 	log                     *logger.Logger
 }
 
+type readSeekCloser struct {
+	*bytes.Reader
+}
+
+func (r *readSeekCloser) Close() error {
+	return nil
+}
+
 func NewUploadHandler(cfg *config.Config, log *logger.Logger, characterLibraryService *services2.CharacterLibraryService) (*UploadHandler, error) {
 	uploadService, err := services2.NewUploadService(cfg, log)
 	if err != nil {
@@ -52,7 +60,9 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 	if seeker, ok := file.(io.Seeker); ok {
 		_, _ = seeker.Seek(0, 0)
 	} else {
-		file = io.MultiReader(bytes.NewReader(sniffBuf[:n]), file)
+		rest, _ := io.ReadAll(file)
+		combined := append(sniffBuf[:n], rest...)
+		file = &readSeekCloser{bytes.NewReader(combined)}
 	}
 
 	// 验证是图片类型
@@ -113,7 +123,9 @@ func (h *UploadHandler) UploadCharacterImage(c *gin.Context) {
 	if seeker, ok := file.(io.Seeker); ok {
 		_, _ = seeker.Seek(0, 0)
 	} else {
-		file = io.MultiReader(bytes.NewReader(sniffBuf[:n]), file)
+		rest, _ := io.ReadAll(file)
+		combined := append(sniffBuf[:n], rest...)
+		file = &readSeekCloser{bytes.NewReader(combined)}
 	}
 
 	// 验证是图片类型
